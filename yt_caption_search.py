@@ -15,7 +15,7 @@ def main(args):
     user = args.user
     if (user and channel_id) or (not channel_id and not user):
         print("please specify user OR channel id")
-        return 1
+        exit(1)
     yt_api = YouTubeApi()
     if channel_id:
         videos = yt_api.get_channel_videos(channel_id, n)
@@ -27,20 +27,12 @@ def main(args):
 
 
 def argparse_setup():
-    parser = argparse.ArgumentParser(
-        "yt_caption_search.py", description="search for word in youtube videos"
-    )
+    parser = argparse.ArgumentParser("yt_caption_search.py", description="search for word in youtube videos")
     parser.add_argument("--word", "-w", type=str, help="word to search", required=True)
-    parser.add_argument(
-        "--channel-id", "-c", type=str, help="channel_id to search from"
-    )
+    parser.add_argument("--channel-id", "-c", type=str, help="channel_id to search from")
     parser.add_argument("--user", "-u", type=str, help="user to search from")
     parser.add_argument(
-        "--n-videos",
-        "-n",
-        type=int,
-        help="n last vides to search in channel",
-        default=5,
+        "--n-videos", "-n", type=int, help="n last vides to search in channel", default=5,
     )
     return parser
 
@@ -61,16 +53,14 @@ class YouTubeApi:
     def __init__(self, api_key: str = None):
         self.api_key = api_key or os.getenv("YT_API_KEY")
 
-    def get_channel_videos(
-        self, channel_id: str = None, n: int = 5
-    ) -> List[YouTubeVideo]:
+    def get_channel_videos(self, channel_id: str = None, n: int = 5) -> List[YouTubeVideo]:
         """get list of last n videos of given youtube channel"""
-        uploads_id = self._get_uploads_id(channel_id=channel_id)
+        uploads_id = self._get_uploads_id({"id": channel_id})
         return self._get_videos_by_uploads_id(uploads_id, n)
 
     def get_user_videos(self, user: str, n: int = 5) -> List[YouTubeVideo]:
         """get list of last n videos of given youtube channel"""
-        uploads_id = self._get_uploads_id(user=user)
+        uploads_id = self._get_uploads_id({"forUsername": user})
         return self._get_videos_by_uploads_id(uploads_id, n)
 
     def _get_videos_by_uploads_id(self, uploads_id: str, n: int) -> List[YouTubeVideo]:
@@ -78,20 +68,14 @@ class YouTubeApi:
         videos = [YouTubeVideo.from_api_item(item) for item in videos_data["items"]]
         return videos
 
-    def _get_uploads_id(self, user: str = None, channel_id: str = None) -> str:
+    def _get_uploads_id(self, uploads_owner_param: dict) -> str:
         channels_url = "https://www.googleapis.com/youtube/v3/channels"
 
         params = {"key": self.api_key, "part": "contentDetails"}
-
-        if channel_id:
-            params.update({"id": channel_id})
-        else:
-            params.update({"forUsername": user})
+        params.update(uploads_owner_param)
 
         channels_resp = requests.get(channels_url, params=params)
-        uploads_id = channels_resp.json()["items"][0]["contentDetails"][
-            "relatedPlaylists"
-        ]["uploads"]
+        uploads_id = channels_resp.json()["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
         return uploads_id
 
     def _get_uploads_playlist_data(self, uploads_id: str, n: int) -> dict:
@@ -132,9 +116,7 @@ def transcript_search(transcript: List[dict], search_str):
             print(text.replace(search_str, make_red(search_str)))
 
 
-def print_found_result(
-    found_word: str, transcript_part: dict, video_id: str, color=True
-):
+def print_found_result(found_word: str, transcript_part: dict, video_id: str, color=True):
     watch_url = make_watch_url(video_id, transcript_part["start"])
     text = transcript_part["text"]
     if color:
