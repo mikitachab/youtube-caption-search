@@ -65,8 +65,8 @@ def print_found_result(found_word: str, transcript_part: dict, video_id: str, co
 def search_video_transcript(video: YouTubeVideo, search_str: str, color=True):
     print(f"Searching video: {video.title}")
     video_id = video.video_id
+    transcript = video.transcript
 
-    transcript = YouTubeApi.get_video_transcript(video_id)
     if not transcript:
         return
 
