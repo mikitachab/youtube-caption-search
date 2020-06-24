@@ -1,20 +1,24 @@
 [tool.poetry]
-name = "yt-caption-search"
+name = "youtube-caption-search"
 version = "0.1.0"
 description = ""
 authors = ["Mikita Chabatarovich <mikita.chabatarovich@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 requests = "^2.24.0"
 youtube_transcript_api = "^0.3.1"
 
 [tool.poetry.dev-dependencies]
+tox = "^3.15.2"
 
+[tool.poetry.scripts]
+youtube-caption-search = "youtube_caption_search.youtube_caption_search:main"
+
+[tool.black]
+line-length = 120
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
-[tool.black]
-line-length = 120

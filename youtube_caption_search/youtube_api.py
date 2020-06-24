@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 import os
-from typing import List, Iterator, Optional
+from typing import List, Iterator, Optional, TypedDict
 
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -11,12 +11,21 @@ DEFAULT_N_VIDEOS = 10
 MAX_PAGE_ITEMS = 50
 
 
+class YouTubeVideoTranscriptPart(TypedDict):
+    text: str
+    start: float
+    duration: float
+
+
+YouTubeVideoTranscript = List[YouTubeVideoTranscriptPart]
+
+
 @dataclass
 class YouTubeVideo:
     video_id: str
     title: str
     published: datetime
-    transcript: List[dict] = None
+    transcript: YouTubeVideoTranscript = None
 
     @staticmethod
     def from_api_item(item: dict) -> "YouTubeVideo":
@@ -71,7 +80,7 @@ class YouTubeApi:
         return items
 
     @staticmethod
-    def get_video_transcript(video_id: str) -> Optional[List[dict]]:
+    def get_video_transcript(video_id: str) -> Optional[YouTubeVideoTranscript]:
         try:
             return YouTubeTranscriptApi.get_transcript(video_id)
         except Exception:  # TODO add specific exception

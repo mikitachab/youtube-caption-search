@@ -1,1 +1,3 @@
+__pychache__
 venv
+*.egg-info
