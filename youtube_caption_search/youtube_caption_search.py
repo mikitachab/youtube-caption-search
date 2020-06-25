@@ -3,7 +3,11 @@ import argparse
 import sys
 
 from .youtube_api import YouTubeApi
-from .transcript_search import TranscriptSearcher
+from .transcript_search import (
+    TranscriptSearcher,
+    SearchResult,
+    SearchStatus,
+)
 
 
 def main():
@@ -25,10 +29,10 @@ def main():
         videos = yt_api.get_user_videos(user, n_videos)
 
     searcher = TranscriptSearcher(word)
-    for index, video in enumerate(videos, 1):
-        print(f"{index}. ", end="")
-        result = searcher.process_video(video)
-        print(result)
+    for video in videos:
+        result: SearchResult = searcher.process_video(video)
+        if result.status == SearchStatus.FOUND:
+            result.show(color=True)
 
 
 def argparse_setup():
@@ -40,23 +44,3 @@ def argparse_setup():
         "--n-videos", "-n", type=int, help="n last vides to search in channel", default=5,
     )
     return parser
-
-
-def make_watch_url(video_id: str, start: float) -> str:
-    start_at = str(start).split(".")[0]
-    return f"https://youtu.be/{video_id}?t={start_at}"
-
-
-def make_red(str_to_red: str) -> str:
-    return f"\033[0;31m{str_to_red}\033[0m"
-
-
-def print_found_result(found_word: str, transcript_part: dict, video_id: str, color=True):
-    watch_url = make_watch_url(video_id, transcript_part["start"])
-    text = transcript_part["text"]
-    if color:
-        print(text.replace(found_word, make_red(found_word)))
-    else:
-        print(text)
-    print(watch_url)
-    print()

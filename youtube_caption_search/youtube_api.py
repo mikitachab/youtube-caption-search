@@ -1,10 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime
-import os
-from typing import List, Iterator, Optional, TypedDict
+from typing import (
+    Any,
+    Dict,
+    List,
+    Iterator,
+    Optional,
+    TypedDict,
+)
+from enum import Enum, unique, auto
 
 import requests
-from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript
 
 API_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 DEFAULT_N_VIDEOS = 10
@@ -17,7 +24,17 @@ class YouTubeVideoTranscriptPart(TypedDict):
     duration: float
 
 
-YouTubeVideoTranscript = List[YouTubeVideoTranscriptPart]
+@unique
+class TranscriptStatus(Enum):
+    READY = auto()
+    ERROR = auto()
+    NONE = auto()
+
+
+class YouTubeVideoTranscript:
+    status: TranscriptStatus = TranscriptStatus.NONE
+    data: List[YouTubeVideoTranscriptPart] = []
+    error_message: Optional[str] = None
 
 
 @dataclass
@@ -25,7 +42,7 @@ class YouTubeVideo:
     video_id: str
     title: str
     published: datetime
-    transcript: YouTubeVideoTranscript = None
+    transcript: Optional[YouTubeVideoTranscript] = None
 
     @staticmethod
     def from_api_item(item: dict) -> "YouTubeVideo":
@@ -37,10 +54,8 @@ class YouTubeVideo:
 
 
 class YouTubeApi:
-    def __init__(self, api_key: str = None):
-        self.api_key = api_key or os.getenv("YT_API_KEY")
-        if self.api_key is None:
-            raise EnvironmentError("YOUTUBE API key not provided")
+    def __init__(self, api_key: str):
+        self.api_key: str = api_key
 
     def get_channel_videos(self, channel_id: str, n_videos: int = DEFAULT_N_VIDEOS) -> Iterator[YouTubeVideo]:
         """get list of last n videos of given youtube channel"""
@@ -69,32 +84,37 @@ class YouTubeApi:
         uploads_id = channels_resp.json()["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
         return uploads_id
 
-    def _get_uploads_playlist_items(self, uploads_id: str, n_videos: int) -> dict:
-        videos_params = {
-            "playlistId": uploads_id,
-            "key": self.api_key,
-            "part": "snippet",
-        }
-        page_loader = PlaylistPageLoagder(videos_params)
+    def _get_uploads_playlist_items(self, uploads_id: str, n_videos: int) -> Iterator[dict]:
+        page_loader = PlaylistPageLoagder(self.api_key, uploads_id)
         items = page_loader.load_all_items(n_videos)
         return items
 
     @staticmethod
     def get_video_transcript(video_id: str) -> Optional[YouTubeVideoTranscript]:
+        transcript = YouTubeVideoTranscript()
+
         try:
-            return YouTubeTranscriptApi.get_transcript(video_id)
-        except Exception:  # TODO add specific exception
-            return None
+            transcript.data = YouTubeTranscriptApi.get_transcript(video_id)
+            transcript.status = TranscriptStatus.READY
+        except CouldNotRetrieveTranscript as error:
+            transcript.error_message = str(error)
+            transcript.status = TranscriptStatus.ERROR
+
+        return transcript
 
 
 class PlaylistPageLoagder:
     PLAYLIST_ITEMS_URL = "https://www.googleapis.com/youtube/v3/playlistItems"
 
-    def __init__(self, init_params):
-        self.init_params = init_params
+    def __init__(self, api_key: str, uploads_id: str):
+        self.req_params: Dict[str, Any] = {
+            "playlistId": uploads_id,
+            "key": api_key,
+            "part": "snippet",
+        }
 
     def _make_playlist_request(self, n_videos: int, page_token: str = None) -> dict:
-        params = {**self.init_params, "maxResults": n_videos}
+        params: dict = {**self.req_params, "maxResults": n_videos}
         if page_token is not None:
             params["pageToken"] = page_token
         resp = requests.get(self.PLAYLIST_ITEMS_URL, params=params)
@@ -102,11 +122,11 @@ class PlaylistPageLoagder:
 
     def load_all_items(self, n_videos: int) -> Iterator[dict]:
         page_counts = _make_pages_results_counts(n_videos, MAX_PAGE_ITEMS)
-        page_token = None
+        page_token: Optional[str] = None
         for page_count in page_counts:
             page_data = self._make_playlist_request(page_count, page_token)
             page_token = page_data.get("nextPageToken")
-            items = page_data.get("items")
+            items: list = page_data["items"]
             for item in items:
                 yield item
 

@@ -1,8 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum, unique, auto
-from typing import List
+from typing import List, Optional
 
-from .youtube_api import YouTubeVideoTranscript, YouTubeVideoTranscriptPart, YouTubeVideo
+from .youtube_api import (
+    YouTubeVideoTranscript,
+    YouTubeVideoTranscriptPart,
+    YouTubeVideo,
+    TranscriptStatus,
+)
+from .helpers import make_watch_url, make_red
 
 
 @unique
@@ -19,7 +25,16 @@ class SearchResult:
     video_title: str
     search_str: str
     status: SearchStatus = SearchStatus.INIT
-    results: List[YouTubeVideoTranscriptPart] = None
+    results: List[YouTubeVideoTranscriptPart] = []
+
+    def show(self, color: bool = False):
+        print("Video: ", self.video_title)
+        for transcript_part in self.results:
+            watch_url = make_watch_url(self.video_id, transcript_part["start"])
+            text = transcript_part["text"]
+            print(text if not color else text.replace(self.search_str, make_red(self.search_str)))
+            print(watch_url)
+            print()
 
 
 class TranscriptSearcher:
@@ -27,15 +42,15 @@ class TranscriptSearcher:
         self.search_str = search_str
 
     def process_video(self, video: YouTubeVideo):
-        transcript: YouTubeVideoTranscript = video.transcript
+        transcript: Optional[YouTubeVideoTranscript] = video.transcript
         result = SearchResult(video_id=video.video_id, video_title=video.title, search_str=self.search_str)
 
-        if not transcript:
+        if not transcript or transcript.status == TranscriptStatus.ERROR:
             result.status = SearchStatus.NO_TRANSCRIPT
             return result
 
         result.results = [
-            transcript_part for transcript_part in transcript if self.search_str in transcript_part["text"]
+            transcript_part for transcript_part in transcript.data if self.search_str in transcript_part["text"]
         ]
 
         result.status = SearchStatus.FOUND if len(result.results) > 0 else SearchStatus.NOT_FOUND
