@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, unique, auto
 from typing import List, Optional
 
@@ -25,7 +25,7 @@ class SearchResult:
     video_title: str
     search_str: str
     status: SearchStatus = SearchStatus.INIT
-    results: List[YouTubeVideoTranscriptPart] = []
+    results: List[YouTubeVideoTranscriptPart] = field(default_factory=list)
 
     def show(self, color: bool = False):
         print("Video: ", self.video_title)
@@ -38,15 +38,18 @@ class SearchResult:
 
 
 class TranscriptSearcher:
-    def __init__(self, search_str: str):
+    def __init__(self, search_str: str, verbose: bool = False):
         self.search_str = search_str
+        self.verbose = verbose
 
     def process_video(self, video: YouTubeVideo):
-        transcript: Optional[YouTubeVideoTranscript] = video.transcript
+        transcript: YouTubeVideoTranscript = video.transcript
         result = SearchResult(video_id=video.video_id, video_title=video.title, search_str=self.search_str)
 
         if not transcript or transcript.status == TranscriptStatus.ERROR:
             result.status = SearchStatus.NO_TRANSCRIPT
+            if self.verbose:
+                print(transcript.error_message)
             return result
 
         result.results = [

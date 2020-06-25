@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import os
 
 from .youtube_api import YouTubeApi
 from .transcript_search import (
@@ -17,18 +18,23 @@ def main():
     n_videos = args.n_videos
     word = args.word
     user = args.user
+    verbose = args.verbose
+    api_key = args.api_key or os.getenv("YOUTUBE_API_KEY")
+
+    if api_key is None:
+        raise EnvironmentError("YOUTUBE API key is not provided")
 
     if (user and channel_id) or (not channel_id and not user):
         print("please specify user OR channel id")
         sys.exit(1)
 
-    yt_api = YouTubeApi()
+    yt_api = YouTubeApi(api_key)
     if channel_id:
         videos = yt_api.get_channel_videos(channel_id, n_videos)
     else:
         videos = yt_api.get_user_videos(user, n_videos)
 
-    searcher = TranscriptSearcher(word)
+    searcher = TranscriptSearcher(word, verbose=verbose)
     for video in videos:
         result: SearchResult = searcher.process_video(video)
         if result.status == SearchStatus.FOUND:
@@ -43,4 +49,6 @@ def argparse_setup():
     parser.add_argument(
         "--n-videos", "-n", type=int, help="n last vides to search in channel", default=5,
     )
+    parser.add_argument("--api-key", "-k", type=str, help="YouTube Data API key", default=None)
+    parser.add_argument("--verbose", "-v", action="store_true", default=False)
     return parser

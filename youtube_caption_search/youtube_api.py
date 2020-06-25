@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import (
     Any,
@@ -21,7 +21,6 @@ MAX_PAGE_ITEMS = 50
 class YouTubeVideoTranscriptPart(TypedDict):
     text: str
     start: float
-    duration: float
 
 
 @unique
@@ -33,7 +32,7 @@ class TranscriptStatus(Enum):
 
 class YouTubeVideoTranscript:
     status: TranscriptStatus = TranscriptStatus.NONE
-    data: List[YouTubeVideoTranscriptPart] = []
+    data: List[YouTubeVideoTranscriptPart] = field(default_factory=list)
     error_message: Optional[str] = None
 
 
@@ -42,7 +41,7 @@ class YouTubeVideo:
     video_id: str
     title: str
     published: datetime
-    transcript: Optional[YouTubeVideoTranscript] = None
+    transcript: YouTubeVideoTranscript = field(default_factory=YouTubeVideoTranscript)
 
     @staticmethod
     def from_api_item(item: dict) -> "YouTubeVideo":
@@ -90,7 +89,7 @@ class YouTubeApi:
         return items
 
     @staticmethod
-    def get_video_transcript(video_id: str) -> Optional[YouTubeVideoTranscript]:
+    def get_video_transcript(video_id: str) -> YouTubeVideoTranscript:
         transcript = YouTubeVideoTranscript()
 
         try:
