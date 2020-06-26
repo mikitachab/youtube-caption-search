@@ -20,6 +20,7 @@ def main():
     user = args.user
     verbose = args.verbose
     api_key = args.api_key or os.getenv("YOUTUBE_API_KEY")
+    color = not args.no_color
 
     if api_key is None:
         raise EnvironmentError("YOUTUBE API key is not provided")
@@ -38,7 +39,7 @@ def main():
     for video in videos:
         result: SearchResult = searcher.process_video(video)
         if result.status == SearchStatus.FOUND:
-            result.show(color=True)
+            result.show(color=color)
 
 
 def argparse_setup():
@@ -50,5 +51,7 @@ def argparse_setup():
         "--n-videos", "-n", type=int, help="n last vides to search in channel", default=5,
     )
     parser.add_argument("--api-key", "-k", type=str, help="YouTube Data API key", default=None)
-    parser.add_argument("--verbose", "-v", action="store_true", default=False)
+    parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--no-color", action="store_true")
+
     return parser
