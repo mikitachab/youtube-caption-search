@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum, unique, auto
-from typing import List, Optional
+from typing import List
 
 from .youtube_api import (
     YouTubeVideoTranscript,
@@ -42,7 +42,7 @@ class TranscriptSearcher:
         self.search_str = search_str
         self.verbose = verbose
 
-    def process_video(self, video: YouTubeVideo):
+    def process_video(self, video: YouTubeVideo) -> SearchResult:
         transcript: YouTubeVideoTranscript = video.transcript
         result = SearchResult(video_id=video.video_id, video_title=video.title, search_str=self.search_str)
 
