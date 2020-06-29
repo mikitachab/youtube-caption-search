@@ -56,14 +56,8 @@ class YouTubeApi:
     def __init__(self, api_key: str):
         self.api_key: str = api_key
 
-    def get_channel_videos(self, channel_id: str, n_videos: int = DEFAULT_N_VIDEOS) -> Iterator[YouTubeVideo]:
-        """get list of last n videos of given youtube channel"""
-        uploads_id = self._get_uploads_id({"id": channel_id})
-        return self._get_videos_by_uploads_id(uploads_id, n_videos)
-
-    def get_user_videos(self, user: str, n_videos: int = DEFAULT_N_VIDEOS) -> Iterator[YouTubeVideo]:
-        """get list of last n videos of given youtube channel"""
-        uploads_id = self._get_uploads_id({"forUsername": user})
+    def get_videos(self, source_param: dict, n_videos: int = DEFAULT_N_VIDEOS) -> Iterator[YouTubeVideo]:
+        uploads_id = self._get_uploads_id(source_param)
         return self._get_videos_by_uploads_id(uploads_id, n_videos)
 
     def _get_videos_by_uploads_id(self, uploads_id: str, n_videos: int) -> Iterator[YouTubeVideo]:
