@@ -2,13 +2,14 @@
 import argparse
 import os
 
-from .youtube_api import YouTubeApi
-from .transcript_search import (
+from youtube_api import YouTubeApi
+from transcript_search import (
     TranscriptSearcher,
     SearchResult,
     SearchStatus,
 )
-from .helpers import get_videos_source_param
+from helpers import get_videos_source_param
+from find_channel_id import find_channel_id
 
 
 def main():
@@ -23,12 +24,15 @@ def main():
         parser.error("YOUTUBE API key is not provided")
 
     yt_api = YouTubeApi(api_key)
-    videos = yt_api.get_videos(source_param, args.n_videos)
-    searcher = TranscriptSearcher(word, verbose=args.verbose)
-    for video in videos:
-        result: SearchResult = searcher.process_video(video)
-        if result.status == SearchStatus.FOUND:
-            result.show(color=color)
+    if args.find_channel_id:
+        print(find_channel_id(yt_api, args.find_channel_id))
+    else:
+        videos = yt_api.get_videos(source_param, args.n_videos)
+        searcher = TranscriptSearcher(word, verbose=args.verbose)
+        for video in videos:
+            result: SearchResult = searcher.process_video(video)
+            if result.status == SearchStatus.FOUND:
+                result.show(color=color)
 
 
 def argparse_setup():
@@ -46,4 +50,9 @@ def argparse_setup():
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--no-color", action="store_true")
 
+    parser.add_argument("--find-channel-id", type=str, default="")
+
     return parser
+
+if __name__ == "__main__":
+    main()

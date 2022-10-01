@@ -2,13 +2,13 @@ from dataclasses import dataclass, field
 from enum import Enum, unique, auto
 from typing import List
 
-from .youtube_api import (
+from youtube_api import (
     YouTubeVideoTranscript,
     YouTubeVideoTranscriptPart,
     YouTubeVideo,
     TranscriptStatus,
 )
-from .helpers import make_watch_url, make_red
+from helpers import make_watch_url, make_red
 
 
 @unique

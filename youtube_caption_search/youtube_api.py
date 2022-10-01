@@ -74,7 +74,9 @@ class YouTubeApi:
         params.update(uploads_owner_param)
 
         channels_resp = requests.get(channels_url, params=params)
-        uploads_id = channels_resp.json()["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
+        resp_json = channels_resp.json()
+        print(resp_json)
+        uploads_id = resp_json["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
         return uploads_id
 
     def _get_uploads_playlist_items(self, uploads_id: str, n_videos: int) -> Iterator[dict]:
@@ -94,6 +96,46 @@ class YouTubeApi:
             transcript.status = TranscriptStatus.ERROR
 
         return transcript
+    
+    def search_by_channel_custom_url(self, custom_url, max_results: int = 10):
+        print("custom url", custom_url)
+        search_url = "https://www.googleapis.com/youtube/v3/search"
+
+        params = {
+            "key": self.api_key,
+            "q": custom_url,
+            "maxResults": max_results,
+            "type": "channel",
+            "part": "id",
+            "fields": "items(id(kind,channelId))",
+        }
+        search_resp = requests.get(search_url, params=params)
+        search_resp_data = search_resp.json()
+        print(search_resp_data)
+        channels_ids = [
+            item['id']['channelId']
+            for item in search_resp_data['items']
+            if item['id']['kind'] == 'youtube#channel'
+        ]
+        channels_url = "https://www.googleapis.com/youtube/v3/channels"
+        
+        ch_params = {
+            "key": self.api_key,
+            "id": ','.join(channels_ids),
+            "part": "id,snippet",
+            "fields": "items(id,snippet(customUrl))",
+            "maxResults": len(channels_ids)
+        }
+
+        ch_resp = requests.get(channels_url, params=ch_params)
+        ch_resp_data = ch_resp.json()
+        print(ch_resp_data)
+        for item in ch_resp_data['items']:
+            url = item['snippet'].get('customUrl')
+            if url is not None and url.lower().replace("@", "") == custom_url.lower():
+                return item['id']
+
+        return "kek" # what to do if not found ???
 
 
 class PlaylistPageLoagder:
